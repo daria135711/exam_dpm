@@ -1,50 +1,61 @@
 # модель в models.py
 from django.db import models
+from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 
-
 class Product(models.Model):
-    name = models.CharField(max_length=150, verbose_name="Название")
-    category = models.CharField(max_length=100, verbose_name="Категория")
-    price = models.DecimalField(max_digits=10, decimal_places=2,
-                                verbose_name="Цена")
-    sku = models.CharField(max_length=50, unique=True,
-                          verbose_name="Артикул")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    name = models.CharField(
+        max_length=150,
+        verbose_name='Название товара',
+        help_text='Не может быть пустым'
+    )
+    category = models.CharField(
+        max_length=100,
+        verbose_name='Категория товара'
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01, message='Цена должна быть больше 0')],
+        verbose_name='Цена'
+    )
+    sku = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name='Артикул',
+        help_text='Уникальный артикул'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания'
+    )
 
-    def __str__(self):
-        return self.name
+    class Meta:
+        verbose_name = 'Товар'
+        verbose_name_plural = 'Товары'
+        ordering = ['-created_at']
 
     def clean(self):
-        """
-        Кастомная валидация для модели.
-        Вызывается автоматически при сохранении через форму (в том числе в админке).
-        """
-        # Проверка, что название не пустое
+        """Валидация на уровне модели"""
         if not self.name or self.name.strip() == '':
-            raise ValidationError({'name': 'Название товара не может быть пустым.'})
-
-        # Проверка, что цена больше нуля
+            raise ValidationError({'name': 'Название товара не может быть пустым'})
         if self.price <= 0:
-            raise ValidationError({'price': 'Цена должна быть больше нуля.'})
-
-        # Проверка уникальности sku (хотя unique=True делает это на уровне БД,
-        # но здесь мы можем сделать более красивую ошибку)
-        if Product.objects.filter(sku=self.sku).exclude(pk=self.pk).exists():
-            raise ValidationError({'sku': 'Товар с таким артикулом уже существует.'})
+            raise ValidationError({'price': 'Цена должна быть больше 0'})
 
     def save(self, *args, **kwargs):
-        # Вызываем валидацию перед сохранением
-        self.full_clean()
+        self.clean()
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} (Арт. {self.sku})"
 
 # products/admin.py регистрация
 from django.contrib import admin
 from .models import Product
 
-
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'category', 'price', 'sku', 'created_at')
-    list_filter = ('category',)
-    search_fields = ('name', 'sku')
+    list_display = ['id', 'name', 'category', 'price', 'sku', 'created_at']
+    list_filter = ['category', 'created_at']
+    search_fields = ['name', 'sku']
+    ordering = ['-created_at']

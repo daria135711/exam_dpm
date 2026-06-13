@@ -1,65 +1,102 @@
 # В папке вашего приложения (например, products) создайте файл middleware.py
-import time
+import os
+from datetime import datetime
+from django.conf import settings
 
-class MetricsMiddleware:
-    """
-    Middleware для сбора метрик HTTP-запросов.
-    Считает общее количество запросов и количество ответов с кодами 2xx,
-    4xx, 5xx.
-    """
+class RequestMetricsMiddleware:
+    """Middleware для подсчёта статистики запросов"""
 
     def __init__(self, get_response):
         self.get_response = get_response
-        # Инициализация счётчиков (атрибуты класса)
         self.total_requests = 0
-        self.status_2xx = 0
-        self.status_4xx = 0
-        self.status_5xx = 0
-        self.request_count_since_last_log = 0
+        self.requests_2xx = 0
+        self.requests_4xx = 0
+        self.requests_5xx = 0
+        
+        # Определяем путь к файлу логов
+        self.log_file = os.path.join(settings.BASE_DIR, 'metrics.log')
+        
+        # Создаём файл логов, если его нет
+        if not os.path.exists(self.log_file):
+            with open(self.log_file, 'w', encoding='utf-8') as f:
+                f.write(f"# Лог метрик запросов\n")
+                f.write(f"# Создан: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"{'='*80}\n\n")
 
     def __call__(self, request):
-        # Обработка запроса
-        response = self.get_response(request)
-
-        # Увеличиваем общий счётчик
+        # Увеличиваем общее количество запросов
         self.total_requests += 1
-        self.request_count_since_last_log += 1
+        
+        # Запоминаем время начала запроса
+        start_time = datetime.now()
 
-        # Определяем категорию статуса ответа
+        # Получаем ответ
+        response = self.get_response(request)
+        
+        # Вычисляем время выполнения запроса
+        execution_time = (datetime.now() - start_time).total_seconds()
+
+        # Классифицируем по статусу
         status_code = response.status_code
         if 200 <= status_code < 300:
-            self.status_2xx += 1
+            self.requests_2xx += 1
         elif 400 <= status_code < 500:
-            self.status_4xx += 1
+            self.requests_4xx += 1
         elif 500 <= status_code < 600:
-            self.status_5xx += 1
+            self.requests_5xx += 1
 
-        # Выводим статистику каждые 5 запросов (или каждый раз – по желанию)
-        if self.request_count_since_last_log >= 5:
-            self._log_metrics()
-            self.request_count_since_last_log = 0
+        # Логируем метрики
+        self._log_metrics(request, response, execution_time)
 
         return response
 
-    def _log_metrics(self):
-        """Выводит накопленную статистику в консоль."""
-        print("=== METRICS ===")
-        print(f"Total requests: {self.total_requests}")
-        print(f"2xx: {self.status_2xx}, 4xx: {self.status_4xx}, 5xx: {self.status_5xx}")
-        print("===============")
+    def _log_metrics(self, request, response, execution_time):
+        """Логирование метрик в консоль и файл"""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        status_code = response.status_code
+        
+        # Формируем сообщение для текущего запроса
+        request_log = (
+            f"[{timestamp}] "
+            f"{request.method} {request.path} "
+            f"→ Status: {status_code} "
+            f"({execution_time:.3f}s)"
+        )
+        
+        # Формируем статистику
+        stats_log = (
+            f"[{timestamp}] STATS → "
+            f"Total: {self.total_requests} | "
+            f"2xx: {self.requests_2xx} | "
+            f"4xx: {self.requests_4xx} | "
+            f"5xx: {self.requests_5xx}"
+        )
+        
+        # Вывод в консоль
+        print(request_log)
+        print(stats_log)
+        print("-" * 80)
+        
+        # Запись в файл
+        try:
+            with open(self.log_file, 'a', encoding='utf-8') as f:
+                f.write(request_log + '\n')
+                f.write(stats_log + '\n')
+                f.write('-' * 80 + '\n')
+                f.write('\n')
+        except Exception as e:
+            print(f"Ошибка записи в файл логов: {e}")
+            
 
 # В начале файла settings.py добавьте код загрузки переменных
 import os
 from dotenv import load_dotenv
 
-# Загружаем переменные из файла .env
 load_dotenv()
 
-# Читаем настройки из окружения с значениями по умолчанию
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# Для учебных целей разрешаем все хосты (в реальном проекте указывайте конкретные)
 ALLOWED_HOSTS = ['*']
 
 # Если у вас нет главной страницы (вы используете только админку), создайте 
@@ -72,10 +109,13 @@ def health_check(request):
 
 # В products/urls.py добавьте маршрут:
 
+from django.urls import path
+from . import views
+
+app_name = 'products'
+
 urlpatterns = [
-    path('', views.product_list, name='product_list'),  # если у вас уже есть
     path('ping/', views.health_check, name='ping'),
-    # другие маршруты...
 ]
 
 # В файле products/tests.py напишите:

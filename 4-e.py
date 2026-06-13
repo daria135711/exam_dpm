@@ -1,4 +1,6 @@
+# создать templates в products и в templates - products
 # templates/products/base.html
+<!-- products/templates/products/base.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -10,7 +12,8 @@
 <body>
     <nav class="navbar navbar-expand-lg bg-dark navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'index' %}">📦 Управление товарами</a>
+            <!-- ИСПРАВЛЕНО: добавлено products: -->
+            <a class="navbar-brand" href="{% url 'products:index' %}">📦 Управление товарами</a>
         </div>
     </nav>
     <div class="container mt-4">
@@ -30,13 +33,15 @@
 
 # templates/products/index.html
 
+<!-- products/templates/products/index.html -->
 {% extends 'products/base.html' %}
 
 {% block title %}Список товаров{% endblock %}
 
 {% block content %}
 <h1>📋 Список товаров</h1>
-<a href="{% url 'create' %}" class="btn btn-primary mb-3">➕ Добавить товар</a>
+<!-- ИСПРАВЛЕНО: добавлено products: -->
+<a href="{% url 'products:create' %}" class="btn btn-primary mb-3">➕ Добавить товар</a>
 
 <table class="table table-striped table-hover">
     <thead class="table-dark">
@@ -58,14 +63,15 @@
             <td>{{ obj.price }} ₽</td>
             <td><code>{{ obj.sku }}</code></td>
             <td>
-                <a href="{% url 'update' obj.id %}" class="btn btn-sm btn-warning">✏️ Изменить</a>
-                <a href="{% url 'delete' obj.id %}" class="btn btn-sm btn-danger">🗑️ Удалить</a>
-            </td>
-        </tr>
+                <!-- ИСПРАВЛЕНО: добавлено products: -->
+                <a href="{% url 'products:update' obj.id %}" class="btn btn-sm btn-warning">✏️ Изменить</a>
+                <a href="{% url 'products:delete' obj.id %}" class="btn btn-sm btn-danger">🗑️ Удалить</a>
+             </td>
+         </tr>
         {% empty %}
-        <tr>
+         <tr>
             <td colspan="6" class="text-center">📭 Нет товаров. Добавьте первый!</td>
-        </tr>
+         </tr>
         {% endfor %}
     </tbody>
 </table>
@@ -101,12 +107,14 @@
     {% endfor %}
     
     <button type="submit" class="btn btn-success">💾 Сохранить</button>
-    <a href="{% url 'index' %}" class="btn btn-secondary">↩️ Отмена</a>
+    <!-- ВАЖНО: здесь products:index -->
+    <a href="{% url 'products:index' %}" class="btn btn-secondary">↩️ Отмена</a>
 </form>
 {% endblock %}
 
 # templates/products/confirm_delete.html
 
+<!-- products/templates/products/confirm_delete.html -->
 {% extends 'products/base.html' %}
 
 {% block title %}Удаление товара{% endblock %}
@@ -123,7 +131,8 @@
         <form method="post">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger">✅ Да, удалить</button>
-            <a href="{% url 'index' %}" class="btn btn-secondary">❌ Нет, отмена</a>
+            <!-- ИСПРАВЛЕНО: добавлено products: -->
+            <a href="{% url 'products:index' %}" class="btn btn-secondary">❌ Нет, отмена</a>
         </form>
     </div>
 </div>

@@ -81,7 +81,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('products.urls')),
 ]
-
 # Для отдачи статики при DEBUG=False
 if not settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

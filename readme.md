@@ -11,7 +11,7 @@ python manage.py startapp products
 Откройте файл exam_project/settings.py. Найдите список INSTALLED_APPS и
 добавьте в него 'products'
 
-в settings.py добавить приложение:
+в urls.py добавить приложение:
 from django.contrib import admin
 from django.urls import path, include
 
@@ -21,6 +21,16 @@ urlpatterns = [
 ]
 1-е:
 создать модель с валидацией (code)
+
+добавить урлы в приложение
+from django.urls import path
+from . import views
+
+app_name = 'products'
+
+urlpatterns = [
+
+]
 
 python manage.py makemigrations
 python manage.py migrate

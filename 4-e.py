@@ -138,4 +138,16 @@
 </div>
 {% endblock %}
 
+# templates/products/404.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Страница не найдена</title>
+</head>
+<body>
+    <h1>404</h1>
+    <p>Запрашиваемая страница не найдена. Проверьте правильность URL.</p>
+</body>
+</html>
+
 
